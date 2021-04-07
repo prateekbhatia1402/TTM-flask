@@ -1,0 +1,410 @@
+{% extends "layout.html" %}
+
+{% block main %}
+<form {%if mode !='view'%}
+            method="POST" id="myform" onsubmit="return window.formSubmit()" 
+            action="{% if mode=='create'%}/register?type=student{%elif mode=='update'%}/update/{{req_id}}{% endif %}"
+        {%endif%}>
+    {% if mode != 'create' %}
+    <div class="form-group">
+        <label for="id">Student ID</label>
+        <input class="form-control" type="text" id="id" name="id" 
+        value="{{ student and student['id'] or ''}}" readonly>
+    </div>
+    {% endif %}
+    <div class="form-group">
+        <label for="name">Full Name</label>
+        <input class="form-control" type="text" id="name" name="name" required
+        value="{{ student and student['name']  or ''}}" {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    <div class="form-group">
+        <label>Gender  </label>
+        <input type="radio" id="mgen" name="gender" value="M"
+        {% if mode == 'create' or student['gender'] == 'M' %}checked{%endif%} 
+        {% if mode == 'view'%}disabled{% endif %}>
+        <label for="mgen">Male</label>
+        <input type="radio" id="fgen" name="gender" value="F"
+        {% if mode != 'create' and student['gender'] == 'F' %}checked{%endif%}
+         {% if mode == 'view'%}disabled{% endif %}>
+        <label for='fgen'>Female</label>
+    </div>
+
+    <div class="form-group">
+        <label for="email">Email</label>
+        <input class="form-control" type="email" id="email"  name="email" 
+            onblur="checkUniqueness(this)"  data-unique='-1' required
+            value="{{  student and student['email'] or '' }}" 
+            {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    {% if mode != 'create'%}
+    <div class="form-group">
+        <label for="username">Username</label>
+        <input class="form-control" type="text" id="username" name="username" required
+             value="{{ student and  student['username'] or '' }}" 
+            disabled>
+    </div>
+    {%endif%}
+    
+    <div class="form-group">
+        <label for="mobile">Mobile Number</label>
+        <input class="form-control" type="text" id="mobile" name="mobile" pattern="(\d{10})" 
+            value="{{ student and  student['mobile']  or ''}}" 
+            {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    <div class="form-group">
+        <label for="class">Class</label>
+        <select class="form-control" id="class" name="class" 
+        value="{{ student and  student['class']  or ''}}" required
+         {% if mode == 'view'%}disabled{% endif %}>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="paddress">Permanent Address : </label>
+        <br>
+        <textarea class="form-control paddress" id="paddress" name="paddress" 
+            rows="3" placeholder="Address" 
+            required  {% if mode == 'view'%}readonly{% endif %}
+            >{{ student and student['paddress']['address']  or '' }}</textarea>
+        <br>
+        <input type="text" class="form-control paddress" id="paddress_city" 
+            name="paddress_city" placeholder="City" 
+            value="{{ student and student['paddress']['city'] or '' }}" 
+            required {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control paddress" id="paddress_state" name="paddress_state" placeholder="State"
+            value="{{ student and student['paddress']['state'] or '' }}" 
+            required {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control paddress" id="paddress_cuntry" name="paddress_country"  placeholder="Country"
+            value="{{ student and student['paddress']['country'] or '' }}" 
+            required {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control paddress" id="paddress_pin" name="paddress_pin" 
+        value="{{ student and student['paddress']['pin'] or '' }}" placeholder="Pin Code"
+        required {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    <div class="form-group">
+        <label for="caddress">Correspondance Address : </label>
+        {% if mode !='view' %}
+        <input type="checkbox" id="samebox" value="Same">
+        <label for="samebox">Same as permanent address</label>
+        {%endif%}
+        <br>
+        <textarea class="form-control caddress" id="caddress" name="caddress" 
+        rows="3" {% if mode == 'view'%}readonly{% endif %}
+        >{{ student and student['caddress']['address']  or '' }}</textarea>
+        <br>
+        <input type="text" class="form-control caddress" id="caddress_city" name="caddress_city" placeholder="City" 
+        value="{{student and student['caddress']['city'] or '' }}" 
+        {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control caddress" id="caddress_state" name="caddress_state" placeholder="State"
+        value="{{ student and student['caddress']['state'] or '' }}" 
+        {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control caddress" id="caddress_cuntry" name="caddress_country"  placeholder="Country"
+        value="{{student and student['caddress']['country'] or '' }}" 
+        {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control caddress" id="caddress_pin" name="caddress_pin" 
+        value="{{ student and student['caddress']['pin'] or '' }}" placeholder="Pin Code"
+        {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    {% if mode != 'create' %}
+    <div class="form-group">
+        <label for="rollno">Roll Number</label>
+        <input class="form-control" type="number" id="rollno" name="rollno" 
+            value="{{ student and student['rollno']  or ''}}" readonly>
+    </div>
+    
+    <div class="form-group">
+        <label for="dor">Date Of Registration</label>
+        <input class="form-control" type="date" id="dor" 
+            value="{{ student and  student['dor'] }}" readonly>
+    </div>
+    {% endif %}
+    <div class="form-group">
+        <label for="dob">Date Of Birth</label>
+        <input class="form-control" type="date" id="dob" name="dob" 
+            value="{{ student and  student['dob']  or ''}}" required 
+        {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    <div class="form-group">
+        <label for="bgrp">Blood Group</label>
+        <select class="form-control" type="text" id="bgrp" name="bgrp" {% if mode == 'view'%}disabled{% endif %}>
+            <option value="O-" {% if student and  student['bgrp'] == 'O-' %}selected{%endif%}> O− </option>
+            <option value="O+" {% if student and  student['bgrp'] == 'O+' %}selected{%endif%}>O+</option> 	
+            <option value="A-" {% if student and student['bgrp'] == 'A-' %}selected{%endif%}>A−</option>
+            <option value="A+" {% if student and  student['bgrp'] == 'A+' %}selected{%endif%}>A+</option>
+            <option value="B-" {% if student and  student['bgrp'] == 'B-' %}selected{%endif%}>B−</option>
+            <option value="B+" {% if student and  student['bgrp'] == 'B+' %}selected{%endif%}>B+</option>
+            <option value="AB-" {% if student and  student['bgrp'] == 'AB-' %}selected{%endif%}>AB−</option>
+            <option value="AB+" {% if student and  student['bgrp'] == 'AB+' %}selected{%endif%}>AB+</option>	 	
+        </select>
+    </div> 
+        {% if mode == 'create' or student['pdetails'] %}
+        <div class="form-group">
+            <label for="fname">Father Name</label>
+            <input class="form-control" type="text" id="fname" name="fname" 
+            value="{{ student and  student['fname']  or ''}}" {% if mode == 'view'%}readonly{% endif %}>
+        </div>
+        <div class="form-group">
+            <label for="fdob">Father's Date Of Birth</label>
+            <input class="form-control" type="date" id="fdob" name="fdob" 
+            value="{{  student and student['fdob']  or ''}}" {% if mode == 'view'%}readonly{% endif %}>
+        </div>
+        <div class="form-group">
+            <label for="femail">Father's Email</label>
+            <input class="form-control" type="email" id="femail" name="femail" onblur="checkParentDetails()"
+            value="{{ student and  student['femail']  or ''}}" {% if mode == 'view'%}readonly{% endif %}>
+        </div>
+        <div class="form-group">
+            <label for="fmobile">Father's Mobile Number</label>
+            <input class="form-control" type="text" pattern="(\d{10})" onblur="checkParentDetails()"
+            id="fmobile" name="fmobile" value="{{student and student['fmobile']  or ''}}" {% if mode == 'view'%}readonly{% endif %}>
+        </div>
+        <div class="form-group">
+            <label for="mname">Mother's Name</label>
+            <input class="form-control" type="text" id="mname" name="mname" 
+            value="{{ student and  student['mname']  or ''}}" {% if mode == 'view'%}readonly{% endif %}>
+        </div>
+        <div class="form-group">
+            <label for="mdob">Mother's Date Of Birth</label>
+            <input class="form-control" type="date" id="mdob" name="mdob" 
+            value="{{ student and  student['mdob']  or ''}}" {% if mode == 'view'%}readonly{% endif %}>
+        </div>
+        <div class="form-group">
+            <label for="memail">Mother's Email</label>
+            <input class="form-control" type="email" id="memail" name="memail" onblur="checkParentDetails()" 
+            value="{{ student and  student['memail']  or ''}}" {% if mode == 'view'%}readonly{% endif %}>
+        </div>
+        <div class="form-group">
+            <label for="mmobile">Mother's Mobile Number</label>
+            <input class="form-control" type="text" pattern="(\d{10})" onblur="checkParentDetails()"
+            id="mmobile" name="mmobile" pattern="(\d{10})" value="{{student and  student['mmobile']  or ''}}" 
+            {% if mode == 'view'%}readonly{% endif %}>
+        </div>
+    {% endif %}
+
+    <div class="form-group">
+        {% if session.role == 'admin' %}
+            {% if mode == 'create' %}
+                <input class="btn btn-primary" type="submit" value="REGISTER">
+            {% elif mode == 'update' %}
+                <input class="btn btn-primary" type="submit" value="UPDATE">
+            {% elif mode == 'view' %}
+                <a href="/list_students?sid={{student['id']}}&mode=update" class="btn btn-info" role="button" aria-disabled="true">EDIT</a>
+            {% endif %}
+        {% endif %}
+        <a href="/list_students" class="btn btn-secondary" role="button" aria-disabled="true">CANCEL</a>
+    </div>
+</form>
+
+<script>
+$.getJSON('/getData?type=classes', function (values_data)
+    {
+        let class_selector = document.querySelector("#class");
+        let options = "<option value = ''>--</option>"
+        for (v of values_data)
+        {
+            if (! v.assignable)
+                continue
+            options += ("<option value="+v.id)
+            if (v.id != '' && v.id == '{{student and student['class'] or ""}}')
+                options += ' selected'
+            options += (">"+v.name + {%if mode != 'view'%}" (" + v.id + ")"+{%endif%}"</option>");
+        }
+        class_selector.innerHTML = options;
+    });
+
+    {% if mode != 'view'%}
+        var STATUS_VALUES = 
+        {
+            '-1': false, // untested
+            '0': false, // invalid
+            '1': true // valid
+        }
+
+    function initData()
+    {
+        let dob = document.getElementById('dob')
+        let fdob = document.getElementById('fdob')
+        let mdob = document.getElementById('mdob')
+        let maxsdate = new Date();
+        maxsdate.setMonth(11);
+        maxsdate.setDate(31)
+        maxsdate = new Date(maxsdate.setFullYear(maxsdate.getFullYear() - 5));
+        let maxpdate = new Date();
+        maxpdate.setMonth(11);
+        maxpdate.setDate(31);
+        maxpdate = new Date(maxpdate.setFullYear(maxpdate.getFullYear() - 15));
+        dob.max = maxsdate.toISOString().split("T")[0];
+        fdob.max = maxpdate.toISOString().split("T")[0]
+        mdob.max = maxpdate.toISOString().split("T")[0]
+        {% if mode != 'view'%}
+            $('#samebox').on('change', toggleSameAddress)
+            $('.paddress').on('blur', function (){syncCaddress($(this))})
+
+            {% if mode =='update'%}
+                {% if not (student and student['dob']) %}
+                    dob.value = maxsdate.toISOString().split("T")[0]
+                {% endif %}
+            {% else %}
+                dob.value = maxsdate.toISOString().split("T")[0]
+            {% endif %}
+
+        {% endif %}        
+    }
+
+        function formSubmit()
+        {
+            if (document.getElementById('email').getAttribute('data-unique') == '-1')
+            {
+                checkUniqueness(null, true)
+                return false
+            }    
+            else
+            {
+                return checkFormValidity()
+            }
+        }
+
+        function checkUniqueness(calle, callOnSubmit=false)
+        {
+            if (calle)
+                calle.setAttribute('data-unique', '-1')
+            let tocheck = ''
+            let email = document.getElementById('email')
+            let values = {'check_on': tocheck}
+
+            if (email.value.trim() == '')
+            {
+                email.setCustomValidity('email cannot be empty')
+            }
+            else if (!STATUS_VALUES[email.getAttribute('data-unique')] && email.reportValidity())
+            {
+                tocheck += 'email,'
+                values['email'] = email.value
+                values['emailof'] = 'student'
+                {% if mode == 'update'%}
+                    values['uid'] = '{{ req_id }}'
+                {% endif %}
+            }
+            else
+            {
+                email.setCustomValidity('')
+            }
+            if (tocheck == '')
+                return
+            values['check_on'] = tocheck
+            $.ajax(
+                {
+                    url: '/validate_data',
+                    type: 'post',
+                    data: values,
+                    success: function(response)
+                    {
+                        if (response.check_on.includes('email'))
+                        {
+                            let v = document.getElementById('email')
+                            if (response.email.toLowerCase() == 'taken' ) 
+                            {
+                                v.setAttribute('data-unique', '0')
+                                v.setCustomValidity('email already taken')    
+                            }
+                            else if (response.email.toLowerCase() == 'not taken')
+                            {
+                                v.setAttribute('data-unique', '1')    
+                                v.setCustomValidity('')
+                                emailok = true    
+                            }
+                            else
+                            {
+                                v.setAttribute('data-unique', '0')
+                            }
+                        }
+                        if (callOnSubmit)
+                        {
+                            document.getElementById('myform').requestSubmit()
+                        }
+                            
+                    }
+                });
+        }
+
+        function checkFormValidity()
+        {
+            let check = true
+            let emailf = document.getElementById('email')
+            if (!STATUS_VALUES[emailf.getAttribute('data-unique')])
+                check = false
+
+            if (!checkParentDetails())
+                check = false
+
+            if (check)
+                return true
+            else
+            {
+                alert('some data in form is incorrect, kindly correct it and try again')
+                return false
+            }
+        }
+
+        function checkParentDetails()
+        {
+            let check = true
+            if (document.getElementById('fmobile').value.trim() == '' && 
+                document.getElementById('mmobile').value.trim() == '')
+            {
+                check = false
+                document.getElementById('fmobile').setCustomValidity('Mobile of one parent is must')
+                document.getElementById('mmobile').setCustomValidity('Mobile of one parent is must')
+            }
+            else
+            {
+                document.getElementById('fmobile').setCustomValidity('')
+                document.getElementById('mmobile').setCustomValidity('')    
+            }
+            
+            if (document.getElementById('femail').value.trim() == '' && 
+                document.getElementById('memail').value.trim() == '')
+            {
+                check = false
+                document.getElementById('femail').setCustomValidity('Email of one parent is must')
+                document.getElementById('memail').setCustomValidity('Email of one parent is must')
+            }
+            else
+            {
+                document.getElementById('femail').setCustomValidity('')
+                document.getElementById('memail').setCustomValidity('')    
+            }
+            return check
+        }
+
+        function syncCaddress(comp)
+        {
+            if (document.getElementById('samebox').checked)
+            {
+                let padd = comp[0]
+                let pid = padd.id
+                let cid = 'caddress'
+                let index = pid.indexOf('_')
+                if (index > 0)
+                    cid += pid.substring(index)
+                let val = padd.value
+                let cadd = document.getElementById(cid)
+                cadd.value = padd.value
+            }
+        }
+
+        function toggleSameAddress()
+        {
+            let val = document.getElementById('samebox').checked
+            $('.caddress').prop('readonly', val)
+            $('.paddress').each(function(){syncCaddress($(this))})
+        }
+        initData()
+    {% endif %}
+</script>
+{% endblock %}

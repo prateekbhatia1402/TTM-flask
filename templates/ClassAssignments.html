@@ -1,0 +1,534 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Class Assignments
+{% endblock %}
+
+{% block main %}
+{% if session.role == 'admin' %}
+<ul style="list-style-type: none;">
+    <div class="container">
+        <div class="row">
+            <div class="col-sm">
+                <li ><a href="/create_subject">Add New Subject</a></li>
+            </div>
+            <div class="col-sm">
+                <li ><a href="/create_room">Add New Room</a></li>     
+            </div>
+            <div class="col-sm">
+                <li ><a href="/create_class">Add New Class</a></li>
+            </div>
+            <div class="col-sm">
+                <li><a href="/register?type=faculty">Add New Faculty</a></li>
+            </div>
+        </div>
+    </div>
+</ul>
+{% endif%}
+<form action="/class_assignments" method="GET" id="select_form" onsubmit="checkClassConstraints()">
+    <div class="form-row justify-content-center">
+        <label for="class_selector" class="col-auto col-form-label">Class</label>
+        <div class="col-auto">
+            <select id="class_selector" name="class" class="custom-select"
+            onchange="{% if classId != ''%}classSelectionChanged(){%else%}changeClass(){%endif%}">
+                <option value="">--</option>
+            </select>
+        </div>
+    <div class="col-auto">
+        <button type="button" id='class_changer' class="btn btn-outline-primary disablegroup" 
+        onclick="changeClass()" style="display: none;">Change Selection</button>
+    </div>
+</div>
+    
+</form>
+
+{% if classId %}
+<hr>
+<form action="/class_assignments" method="POST">
+    <div id="data_block">
+        <input type="hidden" value="{{classId}}" name="class_id">
+        <div class="form-group">
+            <label for="room_selector">Default Room</label>
+            <select id='room_selector' name='room_id' class="form-control"
+            {% if mode == 'view'%} disabled{%endif%}>
+                <option value =''>--</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <table id="data_table" class="table table-striped table-responsive-md btn-table table-hover">
+                <caption>Subject And Faculty Assignment</caption>
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Faculty</th>
+                        {% if mode != 'view'%}
+                        <th>Options</th>
+                        {%endif%}
+                    </tr>
+                </thead>
+                <tbody>
+                
+                </tbody>
+                {% if mode != 'view'%}
+                <tfoot>
+                    <tr>
+                        <td colspan="3"> 
+                            <input type='button' onclick="addRow()" value='Add Row' class="form-control">
+                        </td>
+                    </tr>
+                </tfoot>
+                {%endif%}
+            </table>
+        </div>
+
+        <div class="form-group">
+        {% if session.role == 'admin' %}
+            {% if mode == 'create' %}
+                <input class="btn btn-primary" type="submit" value="SAVE">
+            {% elif mode == 'update' %}
+                <input class="btn btn-primary" type="submit" value="UPDATE">
+            {% elif mode == 'view' %}
+                <a href="/class_assignments?class={{classId}}&mode=update" class="btn btn-info" role="button" aria-disabled="true">EDIT</a>
+            {% endif %}
+        {%endif%}
+            <a href="/classes_subjects" class="btn btn-secondary" role="button" aria-disabled="true">CANCEL</a>
+        </div>
+    </div>
+
+ </form>
+ {% endif %}
+<script>
+
+
+    function classSelectionChanged()
+    {
+        let val = document.getElementById('class_selector').value
+        let btn = document.getElementById('class_changer')
+        if (val == '{{currentId}}')
+            btn.style.display = 'none'
+        else
+        btn.style.display = ''
+    }
+
+
+
+    function checkClassConstraints()
+    {
+        let classSelector = document.getElementById('class_selector')
+        let val = classSelector.value
+        if (val == '')
+            {
+                classSelector.value = '{{classId}}'
+                return false
+            }
+        return true
+    }
+
+    function changeClass()
+    {
+        if (checkClassConstraints())
+            document.getElementById('select_form').submit()
+        else alert('Invalid Selection')
+    }
+
+
+    $.getJSON('/getData?type=classes', function (values_data)
+    {
+        let class_selector = document.querySelector("#class_selector");
+        let options = "<option value = ''>--</option>"
+        for (v of values_data)
+        {
+            options += ("<option value="+v.id);
+            options += (" data-assignable="+v.assignable)
+            console.log(v.id +' : {{ classId }}')
+            if (v.id == '{{ classId }}')
+                options += ' selected'
+            options += (">"+v.name+" (" + v.id + ")</option>");
+        }
+        class_selector.innerHTML = options;
+    })
+{%if classId %}
+    var fsubject = false, ffaculty = false
+    var available_ids = [true, true, true, true, true, true, true, true]
+
+
+    $.getJSON('/getData?type=available_rooms{% if classId %}&class={{ classId }}{% endif %}', function (values_data)
+    {
+        let value_selector = document.querySelector("#room_selector");
+        let options = "<option value = ''>--</option>"
+        for (v of values_data)
+        {
+            options += ("<option value="+v.id) 
+            if (v.current)
+                options += ' selected'
+            options += (">" + v.id + "</option>");
+        }
+        value_selector.innerHTML = options;
+    }
+    )
+    {% if mode != 'view'%}
+    var faculty_list = [], subject_list = [], selected_subject_list = []
+    $.getJSON('/getData?type=faculty', function (values_data)
+    {
+        for (v of values_data)
+        {
+            faculty_list.push([v.id, v.name])
+        }
+        ffaculty = true
+        initTable()
+    })
+
+    $.getJSON('/getData?type=subjects', function (values_data)
+    {
+        for (v of values_data)
+        {
+            subject_list.push([v.id, v.name])
+        }
+        fsubject = true
+        initTable()
+    }
+    )
+
+
+    function removeRow(el)
+    {
+        console.log('removing'+el);
+        // while there are parents, keep going until reach TR 
+        while (el.parentNode && el.tagName.toLowerCase() != 'tr') 
+        {
+            el = el.parentNode;
+        }
+
+        // If el has a parentNode it must be a TR, so delete it
+        // Don't delte if only 3 rows left in table
+        if (el.parentNode && el.parentNode.rows.length > 4) {
+            let rownum = el.getAttribute('data-rownum')
+            let subject = document.querySelector('#subject_'+rownum).value
+            console.log('removing '+subject)
+            removeUnSelectedSubject(subject)
+            el.parentNode.removeChild(el);
+            available_ids[rownum] = true
+            refreshTableData()
+        }
+    }
+
+    function removeUnSelectedSubject(value)
+    {
+        if (value == '')
+            return
+        for(let i = 0;i < selected_subject_list.length; i++)
+        {
+            if (selected_subject_list[i] == value)
+            {
+                selected_subject_list.splice(i, 1)
+                break
+            }
+        }
+    }
+
+    function addSelectedSubject(value)
+    {
+        if (value == '')
+            return
+        selected_subject_list.push(value)
+    }
+
+    function changeSubjectSelection(subject_selector)
+    {
+        
+        let old_val = subject_selector.getAttribute('data-prev');
+        console.log('old ' + old_val);
+        removeUnSelectedSubject(old_val);
+        let new_val = subject_selector.value;
+        console.log('new ' + new_val);
+        addSelectedSubject(new_val);
+        subject_selector.setAttribute('data-prev', new_val);
+        console.log(selected_subject_list)
+        refreshTableData();
+    }
+
+    function refreshTableData()
+    {
+        console.log(getAssignedIds())
+        for(let i of getAssignedIds())
+        {
+            let subject_selector = document.querySelector('#subject_'+i)
+            let options = subject_selector.options;
+            console.log(i+" "+subject_selector.value)
+            for (let j = 0; j < options.length; j++)
+            {
+                //console.log(options[j].value)
+                if (selected_subject_list.includes(options[j].value) && j != options.selectedIndex)
+                {
+                    options[j].disabled = true
+                }
+                else
+                {
+                    options[j].disabled = false
+                }
+            }
+        }
+    }
+
+    function getSubjectSelectBox(id, sid="")
+    {
+        let val = '<select id="subject_' + id + '" class="form-control" name="subject_'
+             + id + '" data-prev="" onchange="changeSubjectSelection(this)"  {%if mode == "view"%}disabled{%endif%} required>'
+            val += '<option value="">--</option>'
+            for (let i = 0; i < subject_list.length; i++)
+            {
+                val += '<option value="'+subject_list[i][0] + '"'
+                if (sid == subject_list[i][0])
+                    val += 'selected'
+                val += '>'+subject_list[i][1] +'('+subject_list[i][0]+')</option>'
+            }
+            val += '</select>'
+        return val
+    }
+
+    function getFacultySelectBox(id, fid="")
+    {
+        let val = '<select id="faculty_' + id + '" class="form-control" name="faculty_'
+             + id + '" data-prev="" onchange="changeSubjectSelection(this)"  {%if mode == "view"%}disabled{%endif%} required>'
+            val += '<option value="">--</option>'
+            for (let i = 0; i < faculty_list.length; i++)
+            {
+                val += '<option value="'+faculty_list[i][0]+'"'
+                if (fid == faculty_list[i][0])
+                    val += 'selected'
+                val += '>'+faculty_list[i][1]+"("+faculty_list[i][0]+')</option>'
+            }
+            val += '</select>'
+        return val
+    }
+
+    function addRow(sub_id = '', fac_id = '')
+    {
+        let table = document.querySelector('#data_table')
+        if (!table)
+            return
+        let a_id = getAvailableId()
+        if (a_id < 0)
+            return
+        let table_body = table.tBodies[0]
+        if (!row_inserted)
+        {
+            let table_contents = table_body.innerHTML;
+            let val = '<tr data-rownum='+a_id+'>'
+            val += '<td>' + getSubjectSelectBox(a_id, sub_id) + '</td>'
+            val += '<td>' + getFacultySelectBox(a_id, fac_id) + '</td>'
+            val += '<td> <input type="button" class="form-control" value="Remove Row" onclick="removeRow(this)"> </td>'
+            val += '</tr>'
+            table_body.innerHTML = val 
+            row_inserted = true
+        }
+        else
+        {
+            let newRow = table.rows[1].cloneNode(true)
+            newRow.setAttribute('data-rownum', a_id)
+            // Now get the inputs and modify their names 
+            let selects = newRow.getElementsByTagName('select')
+            for (let i=0, iLen=selects.length; i<iLen; i++) 
+            {
+                let sid = selects[i].id
+                let sname = selects[i].name
+                if (sid.includes('subject'))
+                {
+                    selects[i].setAttribute('data-prev', '')
+                    if (sub_id == '')
+                        selects[i].selectedIndex = 0
+                    else
+                    {
+                        let options = selects[i].options
+                        for (let j = 0; j < options.length; j++)
+                        {
+                            if (options[j].value == sub_id)
+                            {
+                                selects[i].selectedIndex = j
+                                break
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (fac_id == '')
+                        selects[i].selectedIndex = 0
+                    else
+                    {
+                        let options = selects[i].options
+                        for (let j = 0; j < options.length; j++)
+                        {
+                            if (options[j].value == fac_id)
+                            {
+                                selects[i].selectedIndex = j
+                                break
+                            }
+                        }
+                    }
+                }
+                selects[i].id = sid.substring(0, sid.indexOf('_') + 1) + a_id
+                selects[i].name = sname.substring(0, sname.indexOf('_') + 1) + a_id
+            }
+            // Add the new row to the tBody (required for IE)
+            table_body.appendChild(newRow);
+        }
+            available_ids[a_id] = false
+            refreshTableData();
+    }
+
+    {%else%}
+
+    function addRow(sub_id = '', fac_id = '')
+    {
+        let table = document.querySelector('#data_table')
+        if (!table)
+            return
+        let a_id = getAvailableId()
+        if (a_id < 0)
+            return
+        let table_body = table.tBodies[0]
+        let val = '<tr data-rownum='+a_id+'>'
+        val += '<td>' + getSubjectSelectBox(a_id, sub_id) + '</td>'
+        val += '<td>' + getFacultySelectBox(a_id, fac_id) + '</td>'
+        val += '</tr>'
+        table_body.innerHTML += val 
+        available_ids[a_id] = false
+    }
+
+
+    function getSubjectSelectBox(id, sid="")
+    {
+        let val = '<input type="text" id="subject_' + id + '" class="form-control" name="subject_'
+             + id + '" value="'+sid+'" readonly>'
+        return val
+    }
+
+    function getFacultySelectBox(id, fid="")
+    {
+        let val = '<input type="text" id="faculty_' + id + '" class="form-control" name="faculty_'
+             + id + '" value="'+fid+'" readonly>'
+        return val
+    }
+
+
+    {%endif%}
+    function getAvailableId()
+    {
+        for (let i = 0; i < available_ids.length; i++)
+            if (available_ids[i])
+                return i
+        return -1
+    }
+
+    function getAssignedIds()
+    {
+        var used_values = []
+        for (let i = 0; i < available_ids.length; i++)
+            if (!available_ids[i])
+                used_values.push(i)
+        return used_values
+    }
+    var row_inserted = false
+/*
+    function addRow()
+    {
+        let table = document.querySelector('#data_table')
+        if (!table)
+            return
+        let a_id = getAvailableId()
+        if (a_id < 0)
+            return
+        let table_body = table.tBodies[0]
+        if (!row_inserted)
+        {
+            let table_contents = table_body.innerHTML;
+            let val = '<tr data-rownum='+a_id+'>'
+            val += '<td>' + getSubjectSelectBox(a_id) + '</td>'
+            val += '<td>' + getFacultySelectBox(a_id) + '</td>'
+            val += '<td> <input type="button" class="form-control" value="Remove Row" onclick="removeRow(this)"> </td>'
+            val += '</tr>'
+            table_body.innerHTML = val 
+            row_inserted = true
+        }
+        else
+        {
+            let newRow = table.rows[1].cloneNode(true)
+            newRow.setAttribute('data-rownum', a_id)
+            // Now get the inputs and modify their names 
+            let selects = newRow.getElementsByTagName('select')
+            for (let i=0, iLen=selects.length; i<iLen; i++) 
+            {
+                let sid = selects[i].id
+                if (sid.includes('subject'))
+                    {
+                        selects[i].setAttribute('data-prev', '')
+                        selects[i].value = ''
+                    }
+                let sname = selects[i].name
+                selects[i].id = sid.substring(0, sid.indexOf('_') + 1) + a_id
+                selects[i].name = sname.substring(0, sname.indexOf('_') + 1) + a_id
+            }
+
+            // Add the new row to the tBody (required for IE)
+            table_body.appendChild(newRow);
+            refreshTableData();
+        }
+            available_ids[a_id] = false
+    }
+*/
+/*
+    function getSubjectSelectBox(id)
+    {
+        let val = '<select id="subject_' + id + '" class="form-control" name="subject_'
+             + id + '" data-prev="" onchange="changeSubjectSelection(this)" {%if mode == "view"%}disabled{%endif%} required>'
+            val += '<option value="">--</option>'
+            for (let i = 0; i < subject_list.length; i++)
+            {
+                val += '<option value="'+subject_list[i][0]+'">'+subject_list[i][1]
+                + '('+subject_list[i][0]+')</option>'
+            }
+            val += '</select>'
+        return val
+    }
+
+    function getFacultySelectBox(id)
+    {
+        let val = '<select id="faculty_' + id + '" class="form-control" name="faculty_'
+             + id + '" data-prev="" onchange="changeSubjectSelection(this)"  {%if mode == "view"%}disabled{%endif%} required>'
+            val += '<option value="">--</option>'
+            for (let i = 0; i < faculty_list.length; i++)
+            {
+                val += '<option value="'+faculty_list[i][0]+'">'+faculty_list[i][1]+
+                '('+ faculty_list[i][0] +')</option>'
+            }
+            val += '</select>'
+        return val
+    }
+*/
+    function initTable()
+    {
+        {%if mode != 'view'%}
+        if (!(ffaculty && fsubject))
+            return;
+        {% endif %}
+            {%if predata%}
+                {% for record in predata %}
+                    addRow("{{ record.sub }}", "{{ record.fac }}")
+                {% endfor %}
+            {%elif mode == 'update' %}
+                for (let i = 0; i < 4; i++)
+                addRow();
+            {% else %}
+                let val = 'No Assignment Data Found for this class.'
+                {% if session.role == 'admin' %}val += '<br>To assign faculties <a href="/class_assignments?class={{classId}}&mode=update">click here</a>'
+                {%endif%}
+                document.getElementById('data_block').innerHTML = val
+            {% endif %}
+    }
+    {%if mode == 'view'%}
+        initTable()
+    {% endif %}
+{%endif%}
+</script>
+{% endblock %}

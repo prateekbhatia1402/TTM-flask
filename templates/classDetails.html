@@ -1,0 +1,81 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    {{title}}
+{% endblock %}
+
+{% block main %}
+{% if mode == 'create' %}
+<form method="POST" action="/create_class" onsubmit="return checkValidity()">
+{% elif mode == 'update'%}
+<form method="POST" action="/update/{{req_id}}" onsubmit="return checkValidity()">
+{%else%}
+<form>
+{% endif %}
+    {% if mode != 'create' %}
+    <div class="form-group">
+        <label for="id">Class ID</label>
+        <input class="form-control" type="text" id="id" value="{{clas['id']}}" readonly>
+    </div>
+    {% endif %}
+    <div class="form-group">
+        <label for="name">Display Name</label>
+        <input class="form-control" type="text" id="name" name="name" data-unique=-1
+        value="{{clas and clas['name'] or ''}}" onblur="checkUniqueness()" required>
+    </div>
+    <div class="form-group">
+        <input type="submit" class="btn btn-primary" value="{{mode|upper}}"
+        >
+    </div>
+ </form>
+<script>
+    var STATUS_VALUES = 
+    {
+        '-1': false, // untested
+        '0': false, // invalid
+        '1': true // valid
+    }
+
+function checkUniqueness()
+    {
+        let val = document.getElementById('name').value
+        if (val == '')
+            return
+        $.ajax(
+            {
+                url: '/validate_data',
+                type: 'post',
+                data: 
+                {
+                    'check_on' : 'classname',
+                    'classname' : val,
+                },
+                success: function(response)
+                {
+                    let v = document.getElementById('name')
+                    if (response.classname.toLowerCase() == 'taken' ) 
+                    {
+                        v.setAttribute('data-unique', 0)
+                        v.setCustomValidity('duplicate Class Name')    
+                    }
+                    else if (response.classname.toLowerCase() == 'not taken')
+                    {
+                        v.setAttribute('data-unique', 1)    
+                        v.setCustomValidity('')    
+                    }
+                }
+            });
+    
+    }
+
+    function checkValidity()
+    {
+        if (STATUS_VALUES[document.getElementById('name').getAttribute('data-unique')])
+        {
+            return confirm('You are about to create a new Class / Course\nDo You want to proceed')
+        }
+        else 
+            return false
+    }
+</script>
+{% endblock %}

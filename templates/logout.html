@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    <div>
+        Logging You Out, You will be redirected to login page.<br>
+        <a href="/login"> Click me if you are not redirected</a>
+    </div>
+    <script>
+        function Redirect() {
+            window.location = "/login";
+        }            
+        setTimeout('Redirect()', 1000);
+    </script>
+{%endblock%}

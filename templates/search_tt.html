@@ -1,0 +1,200 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    SEARCH TIME TABLE
+{% endblock %}
+
+{% block main %}
+    <form action="/search_tt" method="POST" onsubmit="return checkClassStatus()">
+        <div class="row justify-content-center">
+            <div class="form-group col-auto">
+                <input type="radio"  class="form-control-input" name="search_type" id="view" name="view" onchange="modfiyForm()"
+                {%if start_mode == 'view' or session.role != 'admin' %} checked="checked" {%endif%}>
+                <label for="view" class="form-control-label">View Time Table</label>
+            </div>
+            {% if session.role=='admin'%}
+            <div class="form-group col-auto">
+                <input type="radio"   class="form-control-input" name="search_type" id="create" name="create" 
+                {%if start_mode == 'update' and session.role == 'admin' %} checked="checked" {%endif%}
+                onchange="modfiyForm()">
+                <label for="create" class="form-control-label">Create or Update</label>
+            </div>
+        </div>
+        {% endif %}
+        <br>
+        <div class="form-row justify-content-center">
+            <div class="col-auto" id="type_group">
+                <label for="type_selector" class="form-control-label">Type : </label>
+                <select id="type_selector" name="type_selector" class="form-control" onchange="loadCorrespondingData(this)" required>
+                    <option value="faculty">Faculty</option>
+                    <option value="classes" selected>Class</option>
+                    <option value="rooms">Room</option>
+                </select>
+            </div>
+            <div class="col-auto" class="form-group">
+                <label for="value_selector" class="form-control-label"> Time Table Of</label>
+                <select id="value_selector" name="value_selector" class="form-control" required>
+                    <option value="">--</option>
+                </select>
+            </div>
+        </div>
+        <br>
+        <!--<input class="btn btn-primary" type="button" id="view_button" value="View" onclick="loadTT()"-->
+        <button class="btn btn-primary" type="button" id="view_button" onclick="loadTT()">
+            View
+          </button>
+        <button class="btn btn-primary" type="submit" id="create_button"
+        formaction="/create_tt" formmethod="GET" style="display: none;">Create/Update</button>
+    </form>
+    <div class="table-responsive">
+        <table id="view_tt_table" class="table table-striped table-sm">
+
+        </table>
+    </div>
+    <script>    
+
+        function setStateLoading(val)
+        {
+            let viewButton = document.getElementById('view_button')    
+            if (val)
+            {
+                viewButton.disabled = true
+                viewButton.innerHTML =  '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'+
+                ' <span class="sr-only">Loading...</span>'
+            }
+            else
+            {
+                viewButton.disabled = false
+                viewButton.innerHTML =  'View'
+            }
+        }
+        function loadTT(init_load=false)
+        {
+            let type = document.getElementById('type_selector').value;
+            if (type == 'classes')
+            {
+                if (checkClassStatus() == false)
+                {
+                    return
+                }
+            }
+            let id = document.getElementById('value_selector').value;
+            if (id == "")
+            {
+                if (!init_load)
+                    alert('select a value first')
+                return
+            }
+            setStateLoading(true);
+            $.getJSON('/getData?type=get_tt&id='+id, function (tt_data)
+            {
+                var view_table = document.querySelector("#view_tt_table");
+                setStateLoading(false)
+                if (tt_data.error != '')
+                {
+                    view_table.innerHTML = tt_data.error
+                    return
+                }
+                var content = '<thead> \n <tr>'
+                let headers = tt_data.header
+                for (header of headers)
+                {
+                    content += '<th scope="col">' + header + '</th>'
+                }
+                content += '</tr> \n </thead> \n <tbody>'
+                let bodyv = tt_data.body
+                for (rows of bodyv)
+                {
+                    content += '<tr>'
+                    for (v in rows)
+                    {
+                        content += '<td>' + rows[v] + '</td>' 
+                    }
+                    content += '</tr>'
+                }
+                content += '</tbody>'
+                view_table.innerHTML = content;
+            }
+            )
+        }
+
+        function loadCorrespondingData(type_selector, init_load=false)
+        {
+            
+            var value = type_selector.options[type_selector.selectedIndex].value;
+
+            $.getJSON('/search_tt?type='+value, function (values_data)
+            {
+                var value_selector = document.querySelector("#value_selector");
+                var options = "<option value = ''>--</option>"
+                for (v of values_data)
+                {
+                    console.log(v);
+                    options += ("<option value="+v.id);
+                    if (value == 'classes')
+                        options += (" data-assignable="+v.assignable)
+                    if (init_load && v.id == '{{tt_of[0]}}')
+                    {
+                        options += ' selected '
+                    }
+                    options += (">"+v.name+"(" + v.id + ")</option>");
+                }
+                value_selector.innerHTML = options;
+                if (init_load)
+                    loadTT(init_load)
+            }
+            )
+        }
+
+        function checkClassStatus()
+        {
+            var selectedOption = document.querySelector("#value_selector").options[
+            document.querySelector("#value_selector").selectedIndex
+            ]
+            console.log(selectedOption.getAttribute('data-assignable'))
+            var value = selectedOption.getAttribute('data-assignable')
+            if (value != 'true')
+            {
+                alert('No Faculty have not been assigned to this class yet')
+                return false
+            }
+        }
+
+        function modfiyForm()
+        {
+            var viewMode = document.getElementById("view").checked;
+            var type_selector = document.getElementById("type_selector")
+            var type_group = document.getElementById("type_group")
+            if (viewMode)
+            {
+                type_group.style.display = "";
+                document.getElementById("view_button").style.display = "";
+                document.getElementById("create_button").style.display = "none";
+            }
+            else
+            {
+                if (type_selector.value != 'classes')
+                {
+                    type_selector.value="classes";
+                    loadCorrespondingData(type_selector)
+                }
+                type_group.style.display = "none";
+                document.getElementById("view_button").style.display = "none";
+                document.getElementById("create_button").style.display = "";
+            }
+        }
+        function initData()
+        {
+            modfiyForm()
+            {%if tt_of%}
+              document.getElementById('type_selector').value = '{{tt_of[1]}}'
+              loadCorrespondingData(document.getElementById("type_selector"), true)
+            {%else %}
+                loadCorrespondingData(document.getElementById("type_selector"))
+            {%endif%}
+        }
+        initData()
+    </script>
+    {% block info %}
+    {% endblock %}
+{% endblock %}

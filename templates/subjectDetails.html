@@ -1,0 +1,110 @@
+{% extends "layout.html" %}
+
+{% block main %}
+    {% if mode == 'create' %}
+    <form method="POST" action="/create_subject" onsubmit="return checkValidity()">
+    {% elif mode == 'update'%}
+    <form method="POST" action="/update/{{req_id}}">
+    {%else%}
+    <form>
+    {%endif%}
+        <div class="form-group">
+            <label for="id">SUBJECT ID</label>
+            <input class="form-control" type="text" id="id" name="id" data-unique="false" 
+            value="{{ subject and  subject['id']  or ''}}"
+            onblur="checkUniqueness()" {% if mode != 'create'%}readonly{%endif%} required>
+        </div>
+        <div class="form-group">
+            <label for="name">SUBJECT NAME</label>
+            <input class="form-control" type="text" id="name"  name="name"
+            value="{{ subject and  subject['name']  or ''}}"
+            {% if mode == 'view'%}readonly{%endif%} required>
+        </div>
+        <div class="form-group">
+            <label for="nlect">LECTURES REQUIRED</label>
+            <input class="form-control" type="number" id="nlect"  name="nlect"
+            value="{{ subject and  subject['rlects']  or ''}}"
+            min=1 max=24 {% if mode == 'view'%}readonly{%endif%} required>
+            <small> per week</small>
+        </div>
+        <div class="form-group">
+            <label for="tlect">TOTAL LECTURES</label>
+            <input class="form-control" type="number" id="tlect" 
+            value="{{ subject and  subject['tlects']  or ''}}"
+            min=1 max=500 name="tlect" {% if mode == 'view'%}readonly{%endif%} required>
+            <small> for entire course</small>
+        </div>
+        <div class="form-group">
+            <label for="credits">CREDITS</label>
+            <input class="form-control" type="number" id="credits"  name="credits"
+            value="{{ subject and  subject['credits']  or ''}}"
+            min=1 max=10 {% if mode == 'view'%}readonly{%endif%} required>
+        </div>
+        <div class="form-group">
+            <label for="syllabus">SYLLABUS</label>
+            <textarea class="form-control"  id="syllabus"  name="syllabus" 
+            {% if mode == 'view'%}readonly{%endif%} 
+            required>{{ subject and  subject['syll']  or ''}}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="eval_cret">EVALUATION CRETERIA</label>
+            <textarea class="form-control" id="eval_cret" {% if mode == 'view'%}readonly{%endif%}
+            name="eval_cret">{{ subject and  subject['eval_cret']  or ''}}</textarea>
+        </div>
+        <div class="form-group">
+            {% if session.role == 'admin' %}
+                {% if mode == 'create' %}
+                    <input class="btn btn-primary" type="submit" value="SUBMIT">
+                {% elif mode == 'update' %}
+                    <input class="btn btn-primary" type="submit" value="UPDATE">
+                {% elif mode == 'view' %}
+                    <a href="/list_subjects?sid={{subject['id']}}&mode=update" class="btn btn-info" role="button" aria-disabled="true">EDIT</a>
+                {% endif %}
+            {% endif %}
+            <a href="/list_subjects" class="btn btn-secondary" role="button" aria-disabled="true">CANCEL</a>
+        </div>
+    </form>
+
+    {%if mode == 'create'%}
+    <script>
+        function checkUniqueness()
+        {
+            let val = document.getElementById('id').value
+            if (val == '')
+                return
+            $.ajax(
+                {
+                    url: '/validate_data',
+                    type: 'post',
+                    data: 
+                    {
+                        'check_on' : 'subid',
+                        'subid' : val,
+                    },
+                    success: function(response)
+                    {
+                        let v = document.getElementById('id')
+                        if (response.subid == 'taken' ) 
+                        {
+                            v.setAttribute('data-unique', false)
+                            v.setCustomValidity('duplicate room id')    
+                        }
+                        else if (response.subid == 'not_taken')
+                        {
+                            v.setAttribute('data-unique', true)    
+                            v.setCustomValidity('')    
+                        }
+                    }
+                });
+        
+        }
+        function checkValidity()
+        {
+            if (document.getElementById('id').getAttribute('data-unique'))
+                return true
+            else 
+                return false
+        }
+    </script>
+    {% endif %}
+{% endblock %} 

@@ -1,0 +1,163 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Homepage
+{% endblock %}
+
+{% block main %}
+
+<div class="accordion text-dark" id="accordionExample">
+  <div class="card">
+    <div class="card-header" id="headingInfo">
+      <h2 class="mb-0">
+        <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#collapseInfo" aria-expanded="true" aria-controls="collapseInfo">
+          Info About TTM
+        </button>
+      </h2>
+    </div>   
+    <div id="collapseInfo" class="collapse show" aria-labelledby="headingInfo" data-parent="#accordionExample">
+      <div class="card-body">
+        <strong>Welcome to TTM, {{ session.user_name }}.</strong>
+        <br> TTM is a Time Table Management Software that lets you create and store time table for your school / Institute.
+        You are currently logged in with role of {{session.role}}. Briefs of what you can do this software are shown below. 
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-header" id="headingOne">
+      <h2 class="mb-0">
+        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+          {%if session.role == 'admin'%}Manage{%else%}View{%endif%} Time Table
+        </button>
+      </h2>
+    </div>
+
+    <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+      <div class="card-body">
+        <strong>You can {%if session.role == 'admin'%}create Time Table of classes and {%endif%}view time table of rooms, classes and faculties.</strong>
+        <br> To view Time Table, <a href="/search_tt">Click Here.</a>  {%if session.role == 'admin'%}
+        <br>To Create Time Table of a class, <a href="/search_tt?mode=update"> Click here</a>{%endif%} 
+       </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" id="headingTwo">
+      <h2 class="mb-0">
+        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse"
+         data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+         {%if session.role == 'admin'%}Manage{%else%}View{%endif%} Faculties
+        </button>
+      </h2>
+    </div>
+    <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionExample">
+      <div class="card-body">
+        {% if session.role == 'admin'%}
+          <strong>You can add new Faculties and update details of existing ones</strong><br>
+            To Add new Faculty <a href="/register?type=faculty">click me</a><br>
+            To View or Update Details <a href="/list_faculties">click me</a><br>
+        {%else%}
+          <strong>You can view list of existing faculties</strong><br>
+            To View the list <a href="/list_faculties">click me</a><br>
+        {%endif%}
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" id="headingThree">
+      <h2 class="mb-0">
+        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+          {%if session.role == 'admin'%}Manage{%else%}View{%endif%} Students
+        </button>
+      </h2>
+    </div>
+    <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordionExample">
+      <div class="card-body">
+        {%if session.role== 'admin'%}
+          <strong>You can add new Students and update details of existing ones</strong><br>
+          To Add a new Student <a href="/register?type=student">click me</a><br>
+          To View or Update Details <a href="/list_students">click me</a><br>
+        {%elif session.role=='faculty'%}
+          <strong>You can view list of all students and see details of each</strong><br>
+          To View the list <a href="/list_students">click me</a><br>  
+        {%else%}
+          <strong>You can view list of all students</strong><br>
+          To View the list <a href="/list_students">click me</a><br>
+        {%endif%}
+      </div>
+    </div>
+  </div>
+  {%if session.role== 'admin'%}
+  <div class="card">
+    <div class="card-header" id="headingFour">
+      <h2 class="mb-0">
+        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+          Manage Classes
+        </button>
+      </h2>
+    </div>
+    <div id="collapseFour" class="collapse" aria-labelledby="headingFour" data-parent="#accordionExample">
+      <div class="card-body">
+        <strong>You can add new Classes and update details of existing ones</strong><br>
+        To Add a new class <a href="/create_class">click me</a><br>
+        To View or Update Details <a href="/list_classes">click me</a><br>
+          </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" id="headingFive">
+      <h2 class="mb-0">
+        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+          Manage Subjects
+        </button>
+      </h2>
+    </div>
+    <div id="collapseFive" class="collapse" aria-labelledby="headingFive" data-parent="#accordionExample">
+      <div class="card-body">
+        <strong>You can add new Subjects and update details of existing ones</strong><br>
+        To Add a new Subject <a href="/create_subject">click me</a><br>
+        To View or Update Details <a href="/list_subjects">click me</a><br>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header" id="headingSix">
+      <h2 class="mb-0">
+        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix">
+          Manage Rooms
+        </button>
+      </h2>
+    </div>
+    <div id="collapseSix" class="collapse" aria-labelledby="headingSix" data-parent="#accordionExample">
+      <div class="card-body">
+        <strong>You can add new Rooms and update details of existing ones</strong><br>
+        To Add a new Room <a href="/create_room">click me</a><br>
+        To View or Update Details <a href="/list_rooms">click me</a><br>
+      </div>
+    </div>
+  </div>
+  {%endif%}
+  <div class="card">
+    <div class="card-header" id="headingSeven">
+      <h2 class="mb-0">
+        <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse"
+         data-target="#collapseSeven" aria-expanded="false" aria-controls="collapseSeven">
+         {%if session.role == 'admin'%}Manage{%else%}View{%endif%} Faculty-Subject Allotment of classes
+        </button>
+      </h2>
+    </div>
+    <div id="collapseSeven" class="collapse" aria-labelledby="headingSeven" data-parent="#accordionExample">
+      <div class="card-body">
+        {%if session.role == 'admin'%}
+        <strong>You can Assign subjects and faculties to teach those subjects to classes</strong><br>
+        To do this task, <a href="/class_assignments">click me</a><br>
+        {%else%}
+        <strong>You can view who teaches what subject in a particular class.</strong><br>
+        To view such details, <a href="/class_assignments">click me</a><br>  
+        {%endif%}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

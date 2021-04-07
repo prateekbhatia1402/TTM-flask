@@ -1,0 +1,405 @@
+{% extends "layout.html" %}
+
+{% block main %}
+<style>
+    
+    .meets
+    {
+        color: green
+    }
+    .notmeets
+    {
+        color: red
+    }
+</style>
+<form action="/create_tt" method="GET" onsubmit="return checkClassStatus()" id="selectForm">
+    <div class="form-row justify-content-center">
+            <label for="class_id" class="col-auto col-form-label">Class</label>
+            <div class="col-auto">
+                <select id="class_id" name="value_selector" class="custom-select"
+                onchange="classSelectionChanged()">
+                    {% for cls in gclasses %}
+                    <option value="{{cls['id']}}" data-assignable="{%if cls['assignable']%}true{%else%}false{%endif%}" 
+                    {%if currentId == cls['id']%}
+                    selected{%endif%}>{{cls['name']}} ({{cls['id']}})</option> 
+                    {%  endfor %}
+                </select>
+            </div>
+        <div class="col-auto">
+            <button type="button" id='class_changer' class="btn btn-outline-primary disablegroup" 
+            onclick="changeClass()" style="display: none;">Change Selection</button>
+        </div>
+    </div>
+</form>
+<form action="/create_tt" method="POST" id="createForm" onsubmit="return beforeSubmit()">
+    <hr>
+    <label for="wef">w.e.f.</label>
+    <input class="form-control" type="date" name="wef" id="wef"  required>
+    <button  class="btn btn-primary hidegroup" type="submit" id="submitbutton" disabled>SUBMIT</button>
+    <input type="hidden" name="classId" id="classId" style="display:none;" value="{{currentId}}">
+    <hr>
+    <button  class="btn btn-secondary disablegroup" type="button" id='suggestButton' onclick="getSuggesstion()"> Suggest One</button>
+    <button  class="btn btn-secondary disablegroup" type="button" onclick="clearAll()"> Clear All</button>
+    <div class="table-responsive">
+        <table class="hidegroup table table-bordered table-sm">
+            <thead class="thead-light">
+                <tr>
+                    {% for v in theaders %}
+                    <th>{{ v }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody id='table_body'>
+            </tbody>
+        </table>
+    </div>
+    <br>
+    <div class="table-responsive">
+        <table class="hidegroup table table-bordered table-sm">
+            <thead  class="thead-light">
+                <tr>
+                    <th>S. No.</th>
+                    <th>Subject Name</th>
+                    <th>Lectures Assigned</th>
+                    <th>Lectures Required</th>
+                </tr>
+            </thead>
+            <tbody id="subjectTable">
+            </tbody>
+        </table>
+    </div>
+</form>
+<script>
+    var minDate = new Date();
+    minDate.setDate(minDate.getDate() + 1);
+    var wefField = document.querySelector('#wef')
+    wefField.min = minDate.toISOString().slice(0,10);
+
+    var facSubDetails = new Map();
+    var subIds = []
+
+    function beforeSubmit()
+    {
+        if (!data_meets_requirements)
+        {
+            alert('Requirements Not Yet Met')
+        }
+        return data_meets_requirements
+    }
+
+    function setCurrentState(normal_state=true)
+    {
+        if (normal_state)
+        {
+            $('.disablegroup').each(function(){$(this).prop('disabled', false)})
+            $('.hidegroup').each(function(){$(this).css('display', '')})
+            document.getElementById('suggestButton').innerHTML =  'Suggest One'
+        }
+        else
+        {
+            $('.disablegroup').each(function(){$(this).prop('disabled', true)})
+            $('.hidegroup').each(function(){$(this).css('display', 'none')})
+            document.getElementById('suggestButton').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'+
+                ' <span>Loading...</span>'
+        }
+        normal_state = !normal_state;
+    }
+
+    $.getJSON('/getData?type=facsub_tt&class={{currentId}}', function (values_data)
+    {
+        for(let i = 0; i < values_data.length; i++)
+        {
+            let myMap = new Map();
+            let facsub = values_data[i]
+            myMap.set("facId", facsub['facId'])
+            myMap.set("facName", facsub['facName'])
+            myMap.set("subId", facsub['subId'])
+            myMap.set("subName", facsub['subName'])
+            myMap.set("reqlectures",facsub['lectures'])
+            myMap.set("asslectures", 0)
+            subIds.push(facsub['subId'])
+            facSubDetails.set(facsub['subId'], myMap);
+        }
+
+        let final_value = ''
+        {% for row in timetable %}
+            final_value += '<tr> <td>{{ row[0] }}</td>'
+            {% for values in row[1] %}
+                final_value += '<td>\
+                    <select name="fac_'+"{{values['dayId']}}_{{values['periodId']}}"+'"\
+                    id = "'+"fac_{{values['dayId']}}_{{values['periodId']}}"+'" class="subfields fields form-control"\
+                    data-subjectvalue="" onchange="applySubjectChange(this)">\
+                    <option value="">--</option>\
+                    <option value="free">FREE</option>'
+                    
+                {% for facsub in values['facs'] %}
+                    final_value += '<option value="'+"{{ facsub['fid'] }}_{{facsub['sid']}}"+'"\
+                    {% if facsub["selected"] %} selected{% endif %}>\
+                        {{facsub["fname"]}} {{facsub["sname"]}}\
+                    </option>'
+                {% endfor %}
+                final_value +=  '</select>\
+                <select name="'+"room_{{values['dayId']}}_{{values['periodId']}}"+
+                '" id="'+"room_{{values['dayId']}}_{{values['periodId']}}"+'" class="fields form-control">'
+                {% for room in values['rooms'] %}
+                    final_value += '<option value="'+"{{ room['id']}}"+'"\
+                    {% if room["selected"] %} selected{% endif %}>\
+                        {{room["id"]}}\
+                    </option>'
+                {% endfor %}
+                final_value += '</select></td>'
+            {% endfor %}
+        final_value += '</tr>'
+        {% endfor %}
+        document.getElementById('table_body').innerHTML = final_value
+        $('.subfields').each(function (){
+            let field = $(this)[0]
+            field.setAttribute('data-subjectvalue', field.value)
+            increaseSubCount(field.value)
+        })
+        updateSubjectTable()
+    });
+
+    function getAlreadyCompletePrompt()
+    {
+        if (confirm('Schedule is already complete, Press OK to clear it and try again or click CANCEL to cancel'))
+        {
+            if (clearAll())
+                getSuggesstion()
+        }
+    }
+
+    function getSuggesstion()
+    {
+        data = {}
+        data['classId'] = '{{currentId}}'
+        $('.fields').each(function(){
+            data[$(this).attr('id')] = $(this).val()
+        })
+        if (data_meets_requirements)
+        {
+            getAlreadyCompletePrompt()
+            return
+        }
+        setCurrentState(false)
+        $.ajax(
+        {
+            url: '/get_schedule_suggestion',
+            type: 'post',
+            data: data,
+            success: function(response)
+            {
+                console.log(response)
+                let rtype = response.type
+                if (rtype == 'success')
+                {
+                    let data = response.data
+                    for (let id in data)
+                    {
+                        let subval =  data[id][0]
+                        let roomval =  data[id][1]
+                        if (subval != '')
+                            changeValue('fac_'+id, subval)
+                        if (roomval != '')
+                            changeValue('room_'+id, roomval)
+                    }
+                    setCurrentState(true)
+                }
+                else
+                {
+                    setCurrentState(true)
+                    if (response.data == 'ALREADY DONE')
+                    {
+                        getAlreadyCompletePrompt()
+                    }
+                    else if (response.data == 'Assignment Not Possible')
+                    {
+                        alert('Schedule cannot be created for the given selections')
+                    }
+                }
+            }
+        });
+    }
+
+    function decreaseSubCount(facsubid)
+    {
+        if (facsubid == null || facsubid == '' || facsubid == 'free')
+            return;
+        var index = facsubid.indexOf("_")
+        if (index < 0){
+            return
+        }
+        var subid = facsubid.substring(index+1)
+        var currentValue = facSubDetails.get(subid)
+        currentValue.set('asslectures',currentValue.get('asslectures')-1)
+        facSubDetails.set(subid, currentValue);
+    }
+    function increaseSubCount(facsubid)
+    {
+        if (facsubid == null ||facsubid == '' || facsubid == 'free')
+            return;
+        var index = facsubid.indexOf("_")
+        if (index < 0){
+            return
+        }
+        var subid = facsubid.substring(index+1)
+        var currentValue = facSubDetails.get(subid)
+        currentValue.set('asslectures',currentValue.get('asslectures')+1)
+        facSubDetails.set(subid, currentValue);
+    }
+
+    function clearAll()
+    {
+        if (!confirm('You are about to clear every selection in the form, Press OK to continue'))
+            return false
+        $('.fields').each(function(){
+            let v = $(this)[0]
+            v.value = ''
+            if (v.id.startsWith('fac'))
+                v.setAttribute('data-subjectvalue', '')
+        })
+        for (var i = 0; i < subIds.length; i++)
+        {
+            var facsub = facSubDetails.get(subIds[i])
+            facsub.set('asslectures', 0)
+        }
+        updateSubjectTable()
+        return true
+    }
+    var data_meets_requirements = false
+
+    function updateSubjectTable()
+    {
+        var subjectTable = document.querySelector("#subjectTable")
+        var value = ""
+        var meetsRequirements = true
+        for (var i = 0; i < subIds.length; i++)
+        {
+            var facsub = facSubDetails.get(subIds[i])
+            var name = facsub.get('subName')
+            var asslectures = facsub.get('asslectures')
+            var reqlectures = facsub.get('reqlectures')
+            var coloClass = ""
+            if (asslectures < reqlectures){
+                meetsRequirements = false
+                colorClass = "notmeets"
+            }
+            else{
+                colorClass = "meets"
+            }
+            value += ("<tr class='"+colorClass+"'><td>"+(i+1)+"</td><td>"+
+            name+"</td><td>"+asslectures+"</td><td>"+
+            reqlectures+"</td></tr>")
+        }
+        subjectTable.innerHTML = value
+        data_meets_requirements = meetsRequirements
+        if (meetsRequirements){
+            document.querySelector("#submitbutton").disabled = false
+        }
+        else{
+            document.querySelector("#submitbutton").disabled = true
+        }
+    }
+    function applySubjectChange(val)
+    {
+        var oldId = val.getAttribute('data-subjectvalue');
+        console.log('old: '+oldId)
+        decreaseSubCount(oldId);
+        var newId = val.options[val.selectedIndex].value;
+        increaseSubCount(newId);
+        val.setAttribute('data-subjectvalue',newId);
+        console.log('new: '+newId)
+        updateSubjectTable();
+    }
+
+    function checkClassStatus()
+    {
+        var selectedOption = document.querySelector("#class_id").options[
+        document.querySelector("#class_id").selectedIndex
+        ]
+        console.log(selectedOption.getAttribute('data-assignable'))
+        var value = selectedOption.getAttribute('data-assignable')
+        if (value != 'true')
+        {
+            alert('you need to assign faculties to this class first')
+            return false;
+        }
+        return true;
+    }
+
+    function classSelectionChanged()
+    {
+        let val = document.getElementById('class_id').value
+        let btn = document.getElementById('class_changer')
+        if (val == '{{currentId}}')
+            btn.style.display = 'none'
+        else
+        btn.style.display = ''
+    }
+
+    function changeClass()
+    {
+        if (checkClassStatus())
+        document.getElementById("selectForm").submit();
+        else{
+            var value = document.querySelector("#selectedClass").value;
+            var selectField = document.querySelector("#class_id");
+            var options = selectField.options;
+            for (var opt, j = 0; opt = options[j]; j++) {
+                if (opt.value == value) {
+                    selectField.selectedIndex = j;
+                    break;
+                                      }
+                                                    }
+            }
+    }
+
+    function changeValue(id, value=null)
+    {
+        if (value == null)
+            return
+        let sel = document.getElementById(id)
+        sel.value = value
+        if (id.startsWith('fac'))
+            applySubjectChange(sel)
+    }
+
+
+    function loadFieldValues(id, values, selectedValue)
+    {
+        let field = document.getElementById(id)
+        let optvals = '<option value="">--</option><option value="free">FREE</option>'
+        for (let i = 0; i < values.length; i++)
+        {
+            let tid = values[i]['fid']+'_'+values[i]['sid']
+            let tval = values[i]['fname']+'_'+values[i]['sname']
+            optvals += '<option value="'+tid+'" '
+            if (tid == selectedValue)
+            {   
+                optvals += 'selected'
+                increaseSubCount(tid)
+                field.setAttribute('data-subjectvalue', tid);
+            }
+            optvals += '>'+tval+'</option>'
+        }
+        field.innerHTML = optvals
+    }
+    
+    function FieldValuesTemplate(id, values)
+    {
+        let optvals = ''
+        for (let i = 0; i < values.length; i++)
+        {
+            let tid = values[i]['fid']+'_'+values[i]['sid']
+            let tval = values[i]['fname']+'_'+values[i]['sname']
+            optvals += '<option value="'+tid+'" '
+            if (values[i]['selected'])
+            {   
+                optvals += 'selected'
+            }
+            optvals += '>'+tval+'</option>'
+        }
+        return optvals
+    }
+</script>
+{% endblock %}

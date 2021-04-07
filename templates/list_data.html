@@ -1,0 +1,82 @@
+{% extends "layout.html" %}
+
+{% block title %}{{title or 'List'}}{% endblock %}
+
+{% block main %}
+<label for="search">Search : </label>
+<input type="search" id="search" class="form-control" placeholder="Search by {%for f,v in fields if v %}{{f}} {%endfor%}" onchange="doSearch()">
+<button type="button"  class="btn btn-info" onclick="doSearch()">Search</button>
+<button type="button"  class="btn btn-secondary" onclick="doSearch(true)">Reset</button>
+{% if create_url %}
+    <a href="{{create_url}}" class="btn btn-link">Add New</a>
+{% endif %}
+<table class="table table-striped {% if session.role == 'admin' %}table-sm{%endif%}">
+    <thead>
+        <tr data-head="yes">
+            {% for val, v in fields%}
+                <th>{{val}}</th>
+            {% endfor %}
+            {% if session.role in access_group %}
+                <th>Options</th>
+            {% endif %}
+
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in data %}
+        <tr data-searchin="{%for f in fields if f[1]%}{{row[f[0]]}} {% endfor %}">
+            {% for f, s in fields %}
+            <td>{{row[f]}}</td>
+            {%endfor%}
+            {% if session.role in access_group %}
+            <td>
+                {% if session.role in view_access %}
+                <form action="{{view_url}}">
+                    <button type="submit" name="sid" class="btn btn-info" value="{{ row['id'] }}">More Info</button>
+                </form>
+                {%endif%}
+                {% if session.role in update_access %}
+                <form action="{{update_url}}">
+                    <input type="hidden" name='mode' value='update'>
+                    <button type="submit" name="sid" class="btn btn-primary" value="{{ row['id'] }}">Update Details</button>
+                </form>
+                {%endif%}
+            </td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<script>
+    function doSearch(doNotFilterOut = false)
+    {
+        var val = document.getElementById('search')
+        if (doNotFilterOut)
+        {
+            val.value = ""
+        }
+        else if (val.value === '')
+        {
+            doNotFilterOut = true
+        }
+        var value = val.value.toLowerCase()
+        var elements = document.getElementsByTagName('tr')
+        for (var i = 0; i < elements.length; i++)
+        {
+            var eval = elements[i].getAttribute('data-searchin')
+            if (eval != null)
+            {
+                eval = eval.toLowerCase()
+                if (eval.includes(value) || doNotFilterOut)
+                {
+                    elements[i].style.display = "";
+                }
+                else
+                {
+                    elements[i].style.display = "none";
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}

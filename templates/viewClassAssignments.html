@@ -1,0 +1,153 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    View Class Assignments
+{% endblock %}
+
+{% block main %}
+    <form action="/search_tt" method="POST" onsubmit="return checkClassStatus()">
+        <input type="radio" name="search_type" id="view" name="view" onchange="modfiyForm()" checked="checked">
+        <label for="view">View Records</label>
+        {% if session.role=='admin'%}
+        <input type="radio" name="search_type" id="create" name="create" onchange="modfiyForm()">
+        <label for="view">Create or Update</label>
+        {% endif %}
+        <br>
+        <div class="form-row justify-content-center">
+            <div class="col-auto">
+                <select id="value_selector" name="value_selector" class="custom-select" required>
+                    <option value="">--</option>
+                </select>
+            </div>
+        </div>
+        <br>
+        <!--<input class="btn btn-primary" type="button" id="view_button" value="View" onclick="loadTT()"-->
+        <button class="btn btn-primary" type="button" id="view_button" onclick="loadData()">
+            View
+          </button>
+        <button class="btn btn-primary" type="submit" id="create_button"
+        formaction="/class_assignments" formmethod="GET" style="display: none;">Create/Update</button>
+    </form>
+    <div class="table-responsive">
+        <table id="view_tt_table" class="table table-striped table-sm">
+            {% if predata %}
+                <thead>
+                    <tr>
+                        {% for v in predata['header'] %}
+                        <th>{{v}}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in predata['body]%}
+                        {% for c in predata['header'] %}
+                        <td>{{row[c]}}</td>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            {% endif %}
+        </table>
+    </div>
+    <script>    
+
+        function setStateLoading(val)
+        {
+            let viewButton = document.getElementById('view_button')    
+            if (val)
+            {
+                viewButton.disabled = true
+                viewButton.innerHTML =  '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'+
+                ' <span class="sr-only">Loading...</span>'
+            }
+            else
+            {
+                viewButton.disabled = false
+                viewButton.innerHTML =  'View'
+            }
+        }
+        function loadData(of_value='')
+        {
+            if (of_value == '')
+            {
+                let id = document.getElementById('value_selector').value;
+                if (id == "")
+                {
+                    alert('select a value first')
+                    return
+                }
+                of_value = id
+            }
+            setStateLoading(true);
+            $.getJSON('/get_data?type=class_assignments&id='+of_value, function (class_data)
+            {
+                var view_table = document.querySelector("#view_tt_table");
+                setStateLoading(false)
+                if (tt_data.error != '')
+                {
+                    view_table.innerHTML = class_data.error
+                    return
+                }
+                var content = '<thead> \n <tr>'
+                let headers = class_data.header
+                for (header of headers)
+                {
+                    content += '<th scope="col">' + header + '</th>'
+                }
+                content += '</tr> \n </thead> \n <tbody>'
+                let bodyv = class_data.body
+                for (rows of bodyv)
+                {
+                    content += '<tr>'
+                    for (v in rows)
+                    {
+                        content += '<td>' + rows[v] + '</td>' 
+                    }
+                    content += '</tr>'
+                }
+                content += '</tbody>'
+                view_table.innerHTML = content;
+            }
+            )
+        }
+
+
+        function checkClassStatus()
+        {
+            var selectedOption = document.querySelector("#value_selector").options[
+            document.querySelector("#value_selector").selectedIndex
+            ]
+            console.log(selectedOption.getAttribute('data-assignable'))
+            var value = selectedOption.getAttribute('data-assignable')
+            if (value != 'true')
+            {
+                alert('you need to assign faculties to this class first')
+                return false
+            }
+        }
+
+        function modfiyForm()
+        {
+            var viewMode = document.getElementById("view").checked;
+            var type_selector = document.getElementById("type_selector")
+            if (viewMode)
+            {
+                type_selector.style.display = "";
+                document.getElementById("view_button").style.display = "";
+                document.getElementById("create_button").style.display = "none";
+            }
+            else
+            {
+                if (type_selector.value != 'classes')
+                {
+                    type_selector.value="classes";
+                    loadCorrespondingData(type_selector)
+                }
+                type_selector.style.display = "none";
+                document.getElementById("view_button").style.display = "none";
+                document.getElementById("create_button").style.display = "";
+            }
+        }
+    </script>
+    {% block info %}
+    {% endblock %}
+{% endblock %}

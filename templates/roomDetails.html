@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+
+{% block main %}
+{%if mode == 'create'%}
+    <form method="POST" action="/create_room" onsubmit="return checkValidity()">
+{%elif mode == 'update'%}
+    <form method="POST" action="/update/{{req_id}}">
+{%else%}
+<form>
+{%endif%}
+    <div class="form-group">
+        <label for="id">ROOM ID</label>
+        <input class="form-control" type="number" id="id" name="id" 
+         placeholder="Unique Room ID" {%if mode !='create'%} value="{{room['id']}}" 
+         readonly{%else%} min=0
+         data-unique="false" onblur="checkUniqueness()" required{%endif%}>
+    </div>
+    <div class="form-group">
+        <label for="cap">SITTING CAPACITY</label>
+        <input class="form-control" type="number" id="cap"  name="cap" min=1 max=2000
+         value="{{ room and room['cap'] or ''}}" required>
+    </div>
+    <input type="submit" class="btn btn-primary" value="submit">
+</form>
+{%if mode == 'create'%}
+<script>
+
+    function checkUniqueness()
+    {
+        let val = document.getElementById('id').value
+        if (val == '')
+            return
+        $.ajax(
+            {
+                url: '/validate_data',
+                type: 'post',
+                data: 
+                {
+                    'check_on' : 'room',
+                    'room' : val,
+                },
+                success: function(response)
+                {
+                    let v = document.getElementById('id')
+                    if (response.room == 'taken' ) 
+                    {
+                        v.setAttribute('data-unique', false)
+                        v.setCustomValidity('duplicate room id')    
+                    }
+                    else if (response.room == 'not_taken')
+                    {
+                        v.setAttribute('data-unique', true)    
+                        v.setCustomValidity('')    
+                    }
+                }
+            });
+    
+    }
+
+    function checkValidity()
+    {
+        if (document.getElementById('id').getAttribute('data-unique'))
+            return true
+        else 
+            return false
+    }
+</script>
+{%endif%}
+{% endblock %}

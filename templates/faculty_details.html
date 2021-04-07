@@ -1,0 +1,401 @@
+{% extends "layout.html" %}
+{% block main %}
+<form {%if mode !='view'%}
+        method="POST" id="myform" onsubmit="return window.formSubmit()" 
+        action="{% if mode=='create'%}/register?type=faculty{%elif mode=='update'%}/update/{{req_id}}{% endif %}"
+     {%endif%}>
+    {% if mode != 'create' %}
+    <div class="form-group">
+        <label for="id">Faculty ID</label>
+        <input class="form-control" type="text" id="id" name='id' 
+        value="{{ faculty and faculty['id'] or '' }}" readonly>
+    </div>
+    {% endif %}
+    <div class="form-group">
+        <label for="name">Full Name</label>
+        <input class="form-control" type="text" id="name" name="name" 
+        value="{{ faculty and faculty['name']  or '' }}" required
+         {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+
+    <div class="form-group">
+        <label>Gender  </label>
+        <input type="radio" id="mgen" name="gender" value="M"
+        {% if mode == 'create' or faculty['gender'] == 'M' %}checked{%endif%} 
+        {% if mode == 'view'%}disabled{% endif %}>
+        <label for="mgen">Male</label>
+        <input type="radio" id="fgen" name="gender" value="F"
+        {% if mode != 'create' and faculty['gender'] == 'F' %}checked{%endif%}
+         {% if mode == 'view'%}disabled{% endif %}>
+        <label for='fgen'>Female</label>
+    </div>
+    <div class="form-group">
+        <label for="email">Email</label>
+        <input class="form-control" type="email" id="email" name="email" data-unique='-1'
+            value="{{ faculty and faculty['email'] or ''  }}" onblur="checkUniqueness(this)" 
+            required   {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    {% if mode !='create' %}
+    <div class="form-group">
+        <label for="username">Username</label>
+        <input class="form-control" type="text" id="username" name="username" 
+            value="{{ faculty and faculty['username'] or ''  }}" required
+            readonly>
+    </div>
+    {%endif%}
+    <div class="form-group">
+        <label for="mobile">Mobile Number</label>
+        <input class="form-control" type="text" id="mobile" name="mobile" pattern="(\d{10})" required  value="{{ faculty and faculty['mobile'] or ''  }}" {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    <div class="form-group">
+        <label for="paddress">Permanent Address : </label>
+        <br>
+        <textarea class="form-control paddress" id="paddress" name="paddress" 
+            rows="3" placeholder="Address" 
+            required  {% if mode == 'view'%}readonly{% endif %}>{{ faculty and faculty['paddress']['address']  or '' }}</textarea>
+        <br>
+        <input type="text" class="form-control paddress" id="paddress_city" name="paddress_city" placeholder="City" 
+            value="{{ faculty and faculty['paddress']['city'] or '' }}" 
+            required {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control paddress" id="paddress_state" name="paddress_state" placeholder="State"
+            value="{{ faculty and faculty['paddress']['state'] or '' }}" 
+            required {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control paddress" id="paddress_cuntry" name="paddress_country"  placeholder="Country"
+            value="{{ faculty and faculty['paddress']['country'] or '' }}" 
+            required {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control paddress" id="paddress_pin" name="paddress_pin" 
+            value="{{ faculty and faculty['paddress']['pin'] or '' }}" placeholder="Pin Code"
+            required {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    <div class="form-group">
+        <label for="caddress">Correspondance Address : </label>
+        {% if mode !='view' %}
+        <input type="checkbox" id="samebox" value="Same">
+        <label for="samebox">Same as permanent address</label>
+        {%endif%}
+        <br>
+        <textarea class="form-control caddress" id="caddress" name="caddress" rows="3" {% if mode == 'view'%}readonly{% endif %}>{{ faculty and faculty['caddress']['address']  or '' }}</textarea>
+        <br>
+        <input type="text" class="form-control caddress" id="caddress_city" name="caddress_city" placeholder="City" 
+            value="{{ faculty and faculty['caddress']['city'] or '' }}" 
+            {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control caddress" id="caddress_state" name="caddress_state" placeholder="State"
+            value="{{ faculty and faculty['caddress']['state'] or '' }}" 
+            {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control caddress" id="caddress_cuntry" name="caddress_country"  placeholder="Country"
+            value="{{ faculty and faculty['caddress']['country'] or '' }}" 
+            {% if mode == 'view'%}readonly{% endif %}>
+        <br>
+        <input type="text" class="form-control caddress" id="caddress_pin" name="caddress_pin" 
+            value="{{ faculty and faculty['caddress']['pin'] or '' }}" placeholder="Pin Code"
+            {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    <div class="form-group">
+        <label for="dob">Date Of Birth</label>
+        <input class="form-control" type="date" id="dob" name="dob" value="{{ faculty and faculty['dob']  or '' }}"  required  {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    {%if mode == 'view'%}
+    <div class="form-group">
+        <label for="dor">Date Of Registration</label>
+        <input class="form-control" type="date" id="dor" name="dor" value="{{ faculty and faculty['dor']  or '' }}" readonly>
+    </div>
+    {% endif %}
+    <div class="form-group">
+        <label for="bgrp">Blood Group</label>
+        <select class="form-control" type="text" id="bgrp" name="bgrp"  required  {% if mode == 'view'%}disabled{% endif %}>
+            <option value="O-" {% if faculty and faculty['bgrp'] == 'O-' %}selected{%endif%}> O− </option>
+            <option value="O+" {% if faculty and faculty['bgrp'] == 'O+' %}selected{%endif%}>O+</option> 	
+            <option value="A-" {% if faculty and faculty['bgrp'] == 'A-' %}selected{%endif%}>A−</option>
+            <option value="A+" {% if faculty and faculty['bgrp'] == 'A+' %}selected{%endif%}>A+</option>
+            <option value="B-" {% if faculty and faculty['bgrp'] == 'B-' %}selected{%endif%}>B−</option>
+            <option value="B+" {% if faculty and faculty['bgrp'] == 'B+' %}selected{%endif%}>B+</option>
+            <option value="AB-" {% if faculty and faculty['bgrp'] == 'AB-' %}selected{%endif%}>AB−</option>
+            <option value="AB+" {% if faculty and faculty['bgrp'] == 'AB+' %}selected{%endif%}>AB+</option>	 	
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="speciality">Speciality</label>
+        <input class="form-control" type="text" id="speciality" name="speciality" value="{{ faculty and faculty['speciality']  or '' }}" {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    <div class="form-group">
+        <label for="experience">Experience</label>
+        <input class="form-control" type="text" id="experience" name="experience" value="{{ faculty and faculty['experience']  or '' }}" {% if mode == 'view'%}readonly{% endif %}>
+    </div>
+    <div class="form-group">
+        {% if mode != 'view'%}
+            <label for='qual_level'>Qualification Level</label>
+            <select id='qual_level' data-prev=0 class="form-control" onchange="changeQualLevel()">
+                <option value='mat'>Matriculation</option>
+                <option value='int'>Intermediate</option>
+                <option value='gra'>Graduate</option>
+                <option value='pgr'>Post Graduate</option>
+            </select>
+        {% endif %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>S. No.</th>
+                    <th>Year</th>
+                    <th>Degree</th>
+                    <th>Institute</th>
+                    <th>Percentage / Grade</th>
+                </tr>
+            </thead>
+            <tbody id="table_body">
+                
+            </tbody>
+        </table>
+    </div>
+    <div class="form-group">
+        {% if session.role == 'admin'%}
+            {% if mode == 'create' %}
+                <input class="btn btn-primary" type="submit" value="REGISTER">
+            {% elif mode == 'update' %}
+                <input class="btn btn-primary" type="submit" value="UPDATE">
+            {% elif mode == 'view' %}
+                <a href="/list_faculties?sid={{faculty['id']}}&mode=update" class="btn btn-info" role="button" aria-disabled="true">EDIT</a>
+            {% endif %}
+        {%endif%}
+        <a href="/list_faculties" class="btn btn-secondary" role="button" aria-disabled="true">CANCEL</a>
+    </div>
+    
+</form>
+<script>
+
+
+    function yearBoxOptionsTemplate(year=new Date().getFullYear())
+    {
+        let val = ''
+        for(let y = new Date().getFullYear(); y > 1960; y--)
+        {
+            let v = '<option value='+y
+            if (year == y)
+                v += ' selected'
+            val += v + '>' + y + '</option>'
+        }
+        return val
+    }
+
+    function initData()
+    {
+        let dob = document.getElementById('dob')
+        let maxdate = new Date();
+        maxdate.setMonth(11);
+        maxdate.setDate(31)
+        maxdate = new Date(maxdate.setFullYear(maxdate.getFullYear() - 15))
+        dob.max = maxdate.toISOString().split("T")[0];
+        {% if mode != 'view'%}
+            $('#samebox').on('change', toggleSameAddress)
+            $('.paddress').on('blur', function (){syncCaddress($(this))})
+        {% endif %}
+        let table_body = document.getElementById('table_body')
+        let val = ''
+        {% if mode !='create'%}
+            {% if not (faculty and faculty['dob']) %}
+                dob.value = maxdate.toISOString().split("T")[0]
+            {% endif %}
+            {% for row in faculty['qualifications'] %}
+                val += QualRowTemplate({{row[0]}}, {{row[2]}}, '{{row[1]}}', '{{row[3]}}', {{row[4]}})
+            {% endfor %}
+            {% if mode!= 'view'%}
+                document.getElementById('qual_level').selectedIndex = {{faculty['qualifications']|length}} - 1
+            {% endif %}
+        {% else %}
+            document.getElementById('qual_level').selectedIndex = 0
+            val += QualRowTemplate(1)
+        {% endif %}
+        table_body.innerHTML = val
+    }
+    function fillDataInYearBoxes()
+    {
+        let selects = document.getElementsByClassName('qual_year')
+        for (let i = 0; i < selects.length; i++)
+        {
+            selects[i].innerHTML = yearBoxOptionsTemplate(selects[i].getAttribute('data-val'))
+        }
+    }
+
+    function QualRowTemplate(sno, year, degree="", institute="", marks="")
+    {
+        let v = '<tr><td>' + sno + '</td>'+
+            '<td><select class="form-control qual_year" name="qual_'+sno+'_year" data-val='+year+
+            '  required  {% if mode == "view"%}disabled{% endif %}>'
+            + yearBoxOptionsTemplate(year)+'</select>'+'</td>'+
+            '<td><input class="form-control" name="qual_'+sno+'_deg" value="'+degree+
+            '" type="text" maxlength=20  required  {% if mode == "view"%}readonly{% endif %}></td>'+
+            '<td><input class="form-control" name="qual_'+sno+'_ins" value="'+institute+
+            '" type="text" maxlength=30 required  {% if mode == "view"%}readonly{% endif %}></td>'+
+            '<td><input class="form-control" name="qual_'+sno+'_marks" value="'+marks+
+            '" type="number" step="0.01" max=100 min=0  required  {% if mode == "view"%}readonly{% endif %}></td>'+
+            '</tr>'
+            return v
+    }
+
+    {% if mode != 'view'%}
+
+        var STATUS_VALUES = 
+        {
+            '-1': false, // untested
+            '0': false, // invalid
+            '1': true // valid
+        }
+        function formSubmit()
+        {
+            if (document.getElementById('email').getAttribute('data-unique') == '-1')
+            {
+                checkUniqueness(null, true)
+                return false
+            }    
+            else
+            {
+                return checkFormValidity()
+            }
+        }
+
+        function checkUniqueness(calle, callOnSubmit=false)
+        {
+            if (calle)
+                calle.setAttribute('data-unique', '-1')
+            let tocheck = ''
+            let email = document.getElementById('email')
+            let values = {'check_on': tocheck}
+            
+            if (email.value.trim() == '')
+            {
+                email.setCustomValidity('email cannot be empty')
+            }
+            else if (!STATUS_VALUES[email.getAttribute('data-unique')] && email.reportValidity())
+            {
+                tocheck += 'email,'
+                values['email'] = email.value
+                values['emailof'] = 'faculty'
+                {% if mode == 'update'%}
+                values['uid'] = '{{ req_id }}'
+                {% endif %}
+            }
+            else
+            {
+                email.setCustomValidity('')
+            }
+            if (tocheck == '')
+                return
+            values['check_on'] = tocheck
+            $.ajax(
+                {
+                    url: '/validate_data',
+                    type: 'post',
+                    data: values,
+                    success: function(response)
+                    {
+            
+                        if (response.check_on.includes('email'))
+                        {
+                            let v = document.getElementById('email')
+                            if (response.email.toLowerCase() == 'taken' ) 
+                            {
+                                v.setAttribute('data-unique', '0')
+                                v.setCustomValidity('email already taken')    
+                            }
+                            else if (response.email.toLowerCase() == 'not taken')
+                            {
+                                v.setAttribute('data-unique', '1')    
+                                v.setCustomValidity('')
+                                emailok = true    
+                            }
+                            else
+                            {
+                                v.setAttribute('data-unique', '0')
+                            }
+                        }
+                        if (callOnSubmit)
+                        {
+                            document.getElementById('myform').requestSubmit()
+                        }
+                            
+                    }
+                });
+        }
+
+        function checkFormValidity()
+        {
+            let check = true
+            let emailf = document.getElementById('email')
+            if (!STATUS_VALUES[emailf.getAttribute('data-unique')])
+                check = false
+            //else if (!emailf.reportValidity())
+            //    check = false
+            if (check)
+                return true
+            else
+            {
+                alert('some data in form is incorrect, kindly correct it and try again')
+                return false
+            }
+        }
+
+
+        function syncCaddress(comp)
+        {
+            if (document.getElementById('samebox').checked)
+            {
+                let padd = comp[0]
+                let pid = padd.id
+                let cid = 'caddress'
+                let index = pid.indexOf('_')
+                if (index > 0)
+                    cid += pid.substring(index)
+                let val = padd.value
+                let cadd = document.getElementById(cid)
+                cadd.value = padd.value
+            }
+        }
+
+        function toggleSameAddress()
+        {
+            let val = document.getElementById('samebox').checked
+            $('.caddress').prop('readonly', val)
+            $('.paddress').each(function(){syncCaddress($(this))})
+        }
+
+        function removeLastRows(table, n) 
+        {
+            if (!table || !n) return;
+            while (n--) 
+            {
+                table.deleteRow(table.rows.length - 1)
+            }
+        }
+
+        function changeQualLevel()
+        {
+            let value = ''
+            let qual_level = document.getElementById('qual_level')
+            let sel_i = qual_level.selectedIndex
+            let prev_i = Number(qual_level.getAttribute('data-prev'))
+            let qual_tbody = document.getElementById('table_body')
+            if (sel_i == prev_i)
+                return
+            else if(sel_i > prev_i)
+            {
+                for (let i = prev_i + 1; i <= sel_i; i++)
+                {
+                    let r = qual_tbody.insertRow()
+                    r.outerHTML = QualRowTemplate((i+1))
+                }
+            }
+            else
+            {
+                removeLastRows(qual_tbody, (prev_i - sel_i))
+            }
+            qual_level.setAttribute('data-prev', sel_i)
+        }
+    {% endif %}
+    initData()
+    fillDataInYearBoxes()
+</script>
+{% endblock %}
